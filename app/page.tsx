@@ -1175,8 +1175,45 @@ function PlanButton({ href, highlighted, children }: { href: string; highlighted
   );
 }
 
+// ─── Typewriter hook ──────────────────────────────────────────────────────────
+function useTypewriter(phrases: string[], typingSpeed = 60, deletingSpeed = 30, pauseMs = 1800) {
+  const [displayed, setDisplayed] = useState("");
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const phrase = phrases[phraseIdx];
+
+    if (!deleting && displayed === phrase) {
+      const t = setTimeout(() => setDeleting(true), pauseMs);
+      return () => clearTimeout(t);
+    }
+
+    if (deleting && displayed === "") {
+      setDeleting(false);
+      setPhraseIdx((i) => (i + 1) % phrases.length);
+      return;
+    }
+
+    const t = setTimeout(
+      () => setDisplayed(deleting ? displayed.slice(0, -1) : phrase.slice(0, displayed.length + 1)),
+      deleting ? deletingSpeed : typingSpeed
+    );
+    return () => clearTimeout(t);
+  }, [displayed, deleting, phraseIdx, phrases, typingSpeed, deletingSpeed, pauseMs]);
+
+  return displayed;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Home() {
+  const heroTyped = useTypewriter([
+    "its own app",
+    "loyal customers",
+    "online ordering",
+    "push notifications",
+  ]);
+
   return (
     <>
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
@@ -1211,8 +1248,14 @@ export default function Home() {
 
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-[#0F172A] leading-[1.1] tracking-tight mb-6 max-w-4xl mx-auto">
             Your business deserves{" "}
-            <span className="bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] bg-clip-text text-transparent">
-              its own app
+            <span className="bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] bg-clip-text text-transparent whitespace-nowrap">
+              {heroTyped}
+              <motion.span
+                aria-hidden="true"
+                className="inline-block w-[3px] h-[0.8em] bg-[#4F46E5] ml-[2px] align-middle rounded-[1px]"
+                animate={{ opacity: [1, 1, 0, 0] }}
+                transition={{ duration: 1, repeat: Infinity, times: [0, 0.45, 0.45, 1], ease: "linear" }}
+              />
             </span>
           </h1>
 
