@@ -948,8 +948,11 @@ function TestimonialsCarousel() {
 }
 
 // ─── Sticky Parallax Stack (GSAP ScrollTrigger) ──────────────────────────────
-function StickyParallaxStack() {
-  const stackRef = useRef<HTMLDivElement>(null);
+// ─── Split Scroll: Features (left ↓) + Process (right ↑) ────────────────────
+function SplitScrollSection() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const leftColRef = useRef<HTMLDivElement>(null);
+  const rightColRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -958,113 +961,93 @@ function StickyParallaxStack() {
 
     gsap.registerPlugin(ScrollTrigger);
     const ctx = gsap.context(() => {
-      const cards = stackRef.current!.querySelectorAll<HTMLElement>(".stack-card");
-      cards.forEach((card, i) => {
-        if (i < cards.length - 1) {
-          gsap.to(card, {
-            scale: 0.93,
-            opacity: 0.45,
-            scrollTrigger: {
-              trigger: cards[i + 1] as Element,
-              start: "top 85%",
-              end: "top 20%",
-              scrub: 1.2,
-            },
-          });
-        }
-      });
-    }, stackRef);
+      const count = 3;
+      const itemH = window.innerHeight;
+      const trigger = {
+        trigger: sectionRef.current,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.3,
+      };
+
+      gsap.to(leftColRef.current, { y: -(count - 1) * itemH, ease: "none", scrollTrigger: trigger });
+      gsap.fromTo(rightColRef.current, { y: -(count - 1) * itemH }, { y: 0, ease: "none", scrollTrigger: trigger });
+    }, sectionRef);
 
     return () => ctx.revert();
   }, []);
 
   return (
-    <div ref={stackRef} className="relative md:pb-16">
-      {/* ── Card 1: Features ──────────────────────────────────────── */}
-      <div
-        id="features"
-        className="stack-card md:sticky overflow-hidden md:mx-6 md:rounded-[28px] shadow-[0_32px_80px_rgba(0,0,0,0.45)]"
-        style={{ top: 80, zIndex: 20, background: "#070C16" }}
-      >
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <div className="text-center mb-16">
-            <p className="text-indigo-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-3">Core Features</p>
-            <h2 className="text-4xl font-extrabold text-white tracking-tight mb-4">
-              Everything your customers expect
-            </h2>
-            <p className="text-lg text-slate-400 max-w-xl mx-auto">
-              Three core features that drive loyalty, revenue, and repeat visits — without any technical setup.
-            </p>
-          </div>
+    <section ref={sectionRef} className="relative md:h-[300vh]" id="features">
+      {/* Desktop sticky container */}
+      <div className="flex flex-col md:flex-row md:sticky md:top-0 md:h-dvh md:overflow-hidden">
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+        {/* ── Left: Core Features (scrolls down on desktop) ────────── */}
+        <div className="flex-1 relative" style={{ background: "#070C16" }}>
+          <p className="hidden md:block absolute top-7 left-8 z-10 text-[10px] font-bold tracking-[0.22em] uppercase text-indigo-400 pointer-events-none">
+            Core Features
+          </p>
+          <div ref={leftColRef} className="md:absolute md:inset-x-0 md:[will-change:transform]">
             {features.map((f) => {
-              const darkColor = f.color === "bg-indigo-50 text-indigo-600"
-                ? "bg-indigo-900/25 text-indigo-400"
-                : f.color === "bg-violet-50 text-violet-600"
-                ? "bg-violet-900/25 text-violet-400"
-                : "bg-orange-900/25 text-orange-400";
+              const iconColor =
+                f.color === "bg-indigo-50 text-indigo-600"
+                  ? "bg-indigo-900/25 text-indigo-400"
+                  : f.color === "bg-violet-50 text-violet-600"
+                  ? "bg-violet-900/25 text-violet-400"
+                  : "bg-orange-900/25 text-orange-400";
               return (
-                <SpotlightCard
-                  key={f.title}
-                  className="bg-[#0D1627] rounded-2xl p-8 border border-white/5 hover:border-white/10 transition-colors duration-200 cursor-default"
-                >
-                  <div className={`w-14 h-14 rounded-xl ${darkColor} flex items-center justify-center mb-6`}>
-                    {f.icon}
+                <div key={f.title} className="flex items-center justify-center px-10 py-20 md:h-screen">
+                  <div className="max-w-xs w-full">
+                    <div className={`w-14 h-14 rounded-xl ${iconColor} flex items-center justify-center mb-7`}>
+                      {f.icon}
+                    </div>
+                    <h3 className="text-2xl md:text-[1.75rem] font-bold text-white tracking-tight mb-3">{f.title}</h3>
+                    <p className="text-slate-400 leading-relaxed">{f.description}</p>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3">{f.title}</h3>
-                  <p className="text-slate-400 leading-relaxed">{f.description}</p>
-                </SpotlightCard>
+                </div>
               );
             })}
           </div>
+          {/* Ambient */}
+          <div className="absolute top-0 right-1/4 w-72 h-72 rounded-full opacity-10 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, #4F46E5, transparent)" }} />
         </div>
 
-        {/* Ambient glow */}
-        <div className="absolute top-0 right-1/4 w-80 h-80 rounded-full opacity-10 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, #4F46E5, transparent)" }} />
-      </div>
+        {/* Divider */}
+        <div className="hidden md:block w-px flex-shrink-0 bg-white/10" />
+        <div className="block md:hidden h-px w-full bg-white/10" />
 
-      {/* ── Card 2: How It Works ──────────────────────────────────── */}
-      <div
-        id="how-it-works"
-        className="stack-card md:sticky overflow-hidden md:mx-6 md:rounded-[28px] shadow-[0_32px_80px_rgba(0,0,0,0.45)] mt-3"
-        style={{ top: 80, zIndex: 21, background: "#0A1020" }}
-      >
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <div className="text-center mb-16">
-            <p className="text-violet-400 text-[11px] font-bold tracking-[0.22em] uppercase mb-3">Process</p>
-            <h2 className="text-4xl font-extrabold text-white tracking-tight mb-4">
-              Live in one afternoon
-            </h2>
-            <p className="text-lg text-slate-400 max-w-xl mx-auto">
-              No developers. No design agency. No back-and-forth. Just three steps.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-3 gap-10 md:gap-12">
-            {steps.map((step, i) => (
-              <div key={step.number} className="relative">
-                {i < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-6 left-[calc(100%_-_1.5rem)] w-12 h-px bg-white/10" aria-hidden="true" />
-                )}
-                <div className="text-6xl font-extrabold leading-none mb-5" style={{ color: "rgba(99,102,241,0.2)" }}>
-                  {step.number}
+        {/* ── Right: How It Works (scrolls up on desktop) ───────────── */}
+        <div className="flex-1 relative" id="how-it-works" style={{ background: "#0A1020" }}>
+          <p className="hidden md:block absolute top-7 right-8 z-10 text-[10px] font-bold tracking-[0.22em] uppercase text-violet-400 pointer-events-none">
+            How It Works
+          </p>
+          <div ref={rightColRef} className="md:absolute md:inset-x-0 md:[will-change:transform]">
+            {steps.map((step) => (
+              <div key={step.number} className="flex items-center justify-center px-10 py-20 md:h-screen">
+                <div className="max-w-xs w-full">
+                  <div className="text-[4.5rem] font-extrabold leading-none mb-5 tabular-nums" style={{ color: "rgba(124,58,237,0.18)" }}>
+                    {step.number}
+                  </div>
+                  <h3 className="text-2xl md:text-[1.75rem] font-bold text-white tracking-tight mb-3">{step.title}</h3>
+                  <p className="text-slate-400 leading-relaxed">{step.body}</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
-                <p className="text-slate-400 leading-relaxed">{step.body}</p>
               </div>
             ))}
           </div>
+          {/* Ambient */}
+          <div className="absolute bottom-0 left-1/4 w-72 h-72 rounded-full opacity-10 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, #7C3AED, transparent)" }} />
         </div>
 
-        {/* Ambient glow */}
-        <div className="absolute bottom-0 left-1/4 w-80 h-80 rounded-full opacity-10 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, #7C3AED, transparent)" }} />
       </div>
+    </section>
+  );
+}
 
-      {/* ── Card 3: Testimonials ──────────────────────────────────── */}
+function StickyParallaxStack() {
+  return (
+    <div className="relative md:pb-16">
       <div
-        className="stack-card md:sticky overflow-hidden md:mx-6 md:rounded-[28px] shadow-[0_32px_80px_rgba(0,0,0,0.45)] mt-3"
-        style={{ top: 80, zIndex: 22 }}
+        className="overflow-hidden md:mx-6 md:rounded-[28px] shadow-[0_32px_80px_rgba(0,0,0,0.45)]"
       >
         <TestimonialsCarousel />
       </div>
@@ -1300,7 +1283,10 @@ export default function Home() {
         {/* ── Phone Immersion ─────────────────────────────────────────────── */}
         <ImmersionSection />
 
-        {/* ── Sticky Parallax Stack: Features → How It Works → Testimonials */}
+        {/* ── Split Scroll: Features ↓ / Process ↑ ───────────────────────── */}
+        <SplitScrollSection />
+
+        {/* ── Testimonials ─────────────────────────────────────────────────── */}
         <StickyParallaxStack />
 
         {/* ── Pricing ─────────────────────────────────────────────────────── */}
