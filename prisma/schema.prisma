@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============= Core Models =============
+
+// User profile
+model User {
+  id                String    @id @default(cuid())
+  clerkId           String    @unique
+  email             String    @unique
+  displayName       String?
+
+  // Fitness profile
+  disabilityType    String    // "spinal-cord-injury", "amputation", "ms", "cerebral-palsy", "arthritis", "other"
+  fitnessLevel      String    // "beginner", "intermediate", "advanced"
+  adaptiveFramework String    // "seated", "standing-supported", "lying", "mixed"
+
+  // Subscription
+  subscriptionTier  String    @default("free") // "free", "premium", "pro"
+  stripeCustomerId  String?   @unique
+  stripeSubId       String?   @unique
+
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  completedWorkouts CompletedWorkout[]
+  clinicAccess      ClinicPatient[]
+}
+
+// Workout library
+model Workout {
+  id                String    @id @default(cuid())
+  title             String
+  description       String?
+  videoUrl          String    // Mux video URL
+  duration          Int       // seconds
+
+  // Categorization
+  adaptiveFramework String    // "seated", "standing-supported", "lying", "mixed"
+  difficulty        String    // "beginner", "intermediate", "advanced"
+  equipment         String[]  // ["none", "resistance-band", "dumbbells", "chair", "wall"]
+
+  // Content
+  captions          String?   // URL to caption file
+  transcript        String?   // Full text transcript
+
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  completedWorkouts CompletedWorkout[]
+  clinicAssignments ClinicWorkoutAssignment[]
+}
+
+// Completed workout log
+model CompletedWorkout {
+  id                String    @id @default(cuid())
+  userId            String
+  workoutId         String
+
+  completedAt       DateTime  @default(now())
+  perceivedDifficulty Int?    // 1-10 scale
+  notes             String?
+
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout           Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workoutId, completedAt])
+}
+
+// Subscription (for Stripe integration)
+model Subscription {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+
+  tier              String    // "free", "premium", "pro"
+  status            String    // "active", "paused", "cancelled"
+
+  startDate         DateTime  @default(now())
+  endDate           DateTime?
+  renewalDate       DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// ============= B2B Models =============
+
+// Clinic/PT office account
+model ClinicAccount {
+  id                String    @id @default(cuid())
+  name              String
+  email             String    @unique
+
+  // Subscription
+  tier              String    @default("basic") // "basic", "professional", "enterprise"
+  status            String    @default("active")
+
+  // Relations
+  patients          ClinicPatient[]
+  workoutAssignments ClinicWorkoutAssignment[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// Clinic can manage users as patients
+model ClinicPatient {
+  id                String    @id @default(cuid())
+  clinicId          String
+  userId            String
+
+  status            String    @default("active") // "active", "discharged", "paused"
+  assignedAt        DateTime  @default(now())
+
+  // Relations
+  clinic            ClinicAccount @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, userId])
+}
+
+// Clinic can assign specific workouts to patients
+model ClinicWorkoutAssignment {
+  id                String    @id @default(cuid())
+  clinicId          String
+  workoutId         String
+
+  instructions      String?
+  assignedAt        DateTime  @default(now())
+
+  // Relations
+  clinic            ClinicAccount @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  workout           Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, workoutId])
+}
